@@ -1,21 +1,23 @@
-import { createInterface } from 'readline';
-import { URL } from 'url';
-import request from 'request';
+import { createInterface } from "readline";
+import { URL } from "url";
+import request from "request";
 
 const readline = createInterface({
     input: process.stdin,
     output: process.stdout
 });
 
-const POSTCODES_BASE_URL = 'https://api.postcodes.io';
-const TFL_BASE_URL = 'https://api.tfl.gov.uk';
+const POSTCODES_BASE_URL = "https://api.postcodes.io";
+const TFL_BASE_URL = "https://api.tfl.gov.uk";
 
 export default class ConsoleRunner {
 
-    promptForPostcode(callback) {
-        readline.question('\nEnter your postcode: ', function(postcode) {
-            readline.close();
-            callback(postcode);
+    promptForPostcode() {
+        return new Promise((resolve, reject)  => {
+            readline.question("\nEnter your postcode: ", function(postcode) {
+                readline.close();
+                resolve(postcode);
+            });
         });
     }
 
@@ -55,19 +57,21 @@ export default class ConsoleRunner {
     getNearestStopPoints(latitude, longitude, count, callback) {
         this.makeGetRequest(
             TFL_BASE_URL,
-            `StopPoint`, 
+            `StopPoint`,
             [
-                {name: 'stopTypes', value: 'NaptanPublicBusCoachTram'},
-                {name: 'lat', value: latitude},
-                {name: 'lon', value: longitude},
-                {name: 'radius', value: 1000},
-                {name: 'app_id', value: '' /* Enter your app id here */},
-                {name: 'app_key', value: '' /* Enter your app key here */}
+                { name: "stopTypes", value: "NaptanPublicBusCoachTram" },
+                { name: "lat", value: latitude },
+                { name: "lon", value: longitude },
+                { name: "radius", value: 1000 },
+                { name: "app_id", value: "" /* Enter your app id here */ },
+                { name: "app_key", value: "" /* Enter your app key here */ }
             ],
             function(responseBody) {
-                const stopPoints = JSON.parse(responseBody).stopPoints.map(function(entity) { 
-                    return { naptanId: entity.naptanId, commonName: entity.commonName };
-                }).slice(0, count);
+                const stopPoints = JSON.parse(responseBody)
+                    .stopPoints.map(function(entity) {
+                        return { naptanId: entity.naptanId, commonName: entity.commonName };
+                    })
+                    .slice(0, count);
                 callback(stopPoints);
             }
         );
@@ -75,13 +79,19 @@ export default class ConsoleRunner {
 
     run() {
         const that = this;
-        that.promptForPostcode(function(postcode) {
-            postcode = postcode.replace(/\s/g, '');
+        that.promptForPostcode().then( function(postcode) {
+            postcode = postcode.replace(/\s/g, "");
             that.getLocationForPostCode(postcode, function(location) {
                 that.getNearestStopPoints(location.latitude, location.longitude, 5, function(stopPoints) {
                     that.displayStopPoints(stopPoints);
                 });
             });
         });
+
+        // get the postcode from the user
+        // remove unnecessary characters?
+        // get the location for the postcode
+        // get the nearest stop points
+        // display the stop points
     }
 }
