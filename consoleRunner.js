@@ -16,7 +16,7 @@ export default class ConsoleRunner {
         return new Promise((resolve, reject)  => {
             readline.question("\nEnter your postcode: ", function(postcode) {
                 readline.close();
-                resolve(postcode);
+                resolve(postcode.replace(/\s/g, ""));
             });
         });
     }
@@ -80,7 +80,7 @@ export default class ConsoleRunner {
     run() {
         const that = this;
         that.promptForPostcode().then( function(postcode) {
-            postcode = postcode.replace(/\s/g, "");
+            // postcode = postcode.replace(/\s/g, "");
             that.getLocationForPostCode(postcode, function(location) {
                 that.getNearestStopPoints(location.latitude, location.longitude, 5, function(stopPoints) {
                     that.displayStopPoints(stopPoints);
