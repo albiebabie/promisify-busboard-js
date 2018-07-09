@@ -33,26 +33,50 @@ export default class ConsoleRunner {
         return requestUrl.href;
     }
 
-    makeGetRequest(baseUrl, endpoint, parameters, callback) {
-        const url = this.buildUrl(baseUrl, endpoint, parameters);
+    makeGetRequest(baseUrl, endpoint, parameters) {
+        return new Promise(
+            (resolve, reject) => {
+                const url = this.buildUrl(baseUrl, endpoint, parameters);
 
-        request.get(url, (err, response, body) => {
-            if (err) {
-                console.log(err);
-            } else if (response.statusCode !== 200) {
-                console.log(response.statusCode);
-            } else {
-                callback(body);
+                request.get(url, (err, response, body) => {
+                    if (err) {
+                        console.log(err);
+                    } else if (response.statusCode !== 200) {
+                        console.log(response.statusCode);
+                    } else {
+                        resolve(body);
+                    }
+                });
             }
-        });
+        );
     }
+    
+    // makeGetRequest(baseUrl, endpoint, parameters, callback) {
+    //     const url = this.buildUrl(baseUrl, endpoint, parameters);
+
+    //     request.get(url, (err, response, body) => {
+    //         if (err) {
+    //             console.log(err);
+    //         } else if (response.statusCode !== 200) {
+    //             console.log(response.statusCode);
+    //         } else {
+    //             callback(body);
+    //         }
+    //     });
+    // }
 
     getLocationForPostCode(postcode, callback) {
-        this.makeGetRequest(POSTCODES_BASE_URL, `postcodes/${postcode}`, [], function(responseBody) {
+        this.makeGetRequest(POSTCODES_BASE_URL, `postcodes/${postcode}`, []).then( (responseBody) => {
             const jsonBody = JSON.parse(responseBody);
             callback({ latitude: jsonBody.result.latitude, longitude: jsonBody.result.longitude });
         });
     }
+    // getLocationForPostCode(postcode, callback) {
+    //     this.makeGetRequest(POSTCODES_BASE_URL, `postcodes/${postcode}`, [], function(responseBody) {
+    //         const jsonBody = JSON.parse(responseBody);
+    //         callback({ latitude: jsonBody.result.latitude, longitude: jsonBody.result.longitude });
+    //     });
+    // }
 
     getNearestStopPoints(latitude, longitude, count, callback) {
         this.makeGetRequest(
@@ -65,33 +89,23 @@ export default class ConsoleRunner {
                 { name: "radius", value: 1000 },
                 { name: "app_id", value: "" /* Enter your app id here */ },
                 { name: "app_key", value: "" /* Enter your app key here */ }
-            ],
-            function(responseBody) {
-                const stopPoints = JSON.parse(responseBody)
-                    .stopPoints.map(function(entity) {
-                        return { naptanId: entity.naptanId, commonName: entity.commonName };
-                    })
-                    .slice(0, count);
-                callback(stopPoints);
-            }
-        );
+            ])
+        .then( (responseBody) => {
+            const stopPoints = JSON.parse(responseBody).stopPoints.map(function(entity) {
+                                        return { naptanId: entity.naptanId, commonName: entity.commonName };
+            }).slice(0, count);
+            callback(stopPoints);
+        });
     }
 
     run() {
         const that = this;
         that.promptForPostcode().then( function(postcode) {
-            // postcode = postcode.replace(/\s/g, "");
             that.getLocationForPostCode(postcode, function(location) {
                 that.getNearestStopPoints(location.latitude, location.longitude, 5, function(stopPoints) {
                     that.displayStopPoints(stopPoints);
                 });
             });
         });
-
-        // get the postcode from the user
-        // remove unnecessary characters?
-        // get the location for the postcode
-        // get the nearest stop points
-        // display the stop points
     }
 }
